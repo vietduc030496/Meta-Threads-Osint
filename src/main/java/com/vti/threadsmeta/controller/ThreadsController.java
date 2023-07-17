@@ -19,7 +19,6 @@ public class ThreadsController {
 
     @GetMapping("/{threads}")
     public ResponseEntity<Object> getThreads(@PathVariable("threads") String threadUrl) throws IOException {
-        String theads = threadsService.getTheads(threadUrl);
-        return null;
+        return ResponseEntity.ok(threadsService.getTheads(threadUrl));
     }
 }

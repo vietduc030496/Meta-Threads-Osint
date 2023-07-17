@@ -20,10 +20,9 @@ public class UserController {
         return ResponseEntity.ok(userService.getByUsername(username));
     }
 
-    @GetMapping("/{username}/image/download")
+    @GetMapping("/{username}/media/download")
     public ResponseEntity<Object> downloadImage(HttpServletResponse response, @PathVariable String username) throws IOException {
-        userService.downloadImage(response, username);
-        return ResponseEntity.ok("Success");
+        return ResponseEntity.ok(userService.downloadImage(response, username));
     }
 
 }
