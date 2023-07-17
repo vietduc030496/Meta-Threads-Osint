@@ -7,7 +7,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public class MediaResponse {
+public class ThreadsMedia {
 
     private List<String> image;
     private String video;

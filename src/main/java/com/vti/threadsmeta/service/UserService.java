@@ -4,15 +4,18 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.vti.threadsmeta.dto.response.CustomHeaderResponse;
-import com.vti.threadsmeta.dto.response.MediaResponse;
+import com.vti.threadsmeta.dto.common.CustomHeader;
+import com.vti.threadsmeta.dto.response.InstagramHeaderResponse;
+import com.vti.threadsmeta.dto.response.ThreadsMedia;
 import com.vti.threadsmeta.dto.response.UserThreadsResponse;
+import com.vti.threadsmeta.repository.ThreadsAPI;
 import com.vti.threadsmeta.util.GraphConstants;
 import com.vti.threadsmeta.util.HttpUtils;
 import com.vti.threadsmeta.util.PatternUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import okhttp3.*;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -30,6 +33,9 @@ import java.util.zip.ZipOutputStream;
 
 @Service
 public class UserService {
+
+    @Autowired
+    private ThreadsAPI threadsAPI;
 
     private Headers headers;
 
@@ -88,50 +94,7 @@ public class UserService {
     }
 
     public UserThreadsResponse getByUsername(String username) throws IOException {
-        CustomHeaderResponse basicInfo = getBasicInfo(username);
-        RequestBody body = new FormBody.Builder()
-                .add("av", "0")
-                .add("__user", "0")
-                .add("__a", "1")
-                .add("__req", "1")
-                .add("__hs", "19544.HYP:barcelona_web_pkg.2.1..0.0")
-                .add("dpr", "1")
-                .add("__ccg", "EXCELLENT")
-                .add("__rev", "1007795914")
-                .add("__s", "c1fpxh:oh98tm:os2fqi")
-                .add("__hsi", "7252655495199472548")
-                .add("__dyn", "7xeUmwlEnwn8K2WnFw9-2i5U4e0yoW3q32360CEbo1nEhw2nVE4W0om78b87C0yE465o-cw5Mx62G3i0Bo7O2l0Fwqo31wnEfovwRwlE-U2zxe2Gew9O22362W2K0zK5o4q0GpovU1aUbodEGdwtU2ewbS1LwTwNwLw8O1pwr82gxC")
-                .add("__csr", "j8kjt5p9e00hB4Eqw-w0Xiwrk0xE9Eixza2svazUndhEpko9xy7Ej7Saxl2U5-8m8yA4zCwxxWegQz5162a5x02UxW1g2Ex3MwM_3M25wlQ13gN0el4m2H3r16089wxwnq0w8gqd12")
-                .add("__comet_req", "29")
-                .add("lsd", "lDpRQj_6Y6EIsxPzJlbJB1")
-                .add("jazoest", "21997")
-                .add("__spin_r", "1007795914")
-                .add("__spin_b", "trunk")
-                .add("__spin_t", "1688640447")
-                .add("__jssesw", "2")
-                .add("fb_api_caller_class", "RelayModern")
-                .add("fb_api_req_friendly_name", "BarcelonaProfileRootQuery")
-                .add("variables", String.format(GraphConstants.VARIABLE_USERNAME, basicInfo.getUserId()))
-                .add("server_timestamps", "true")
-                .add("doc_id", "23996318473300828")
-                .build();
-
-
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder().url(GraphConstants.BASE_URL_GRAPH)
-                .headers(headers)
-                .addHeader("x-ig-app-id", basicInfo.getIgAppId())
-//                .addHeader("x-fb-lsd", basicInfo.getXFbLsdToken())
-                .post(body)
-                .build();
-
-        String responseBody = "";
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Unexpected response code: " + response);
-            }
-            responseBody = response.body().string();
-        }
+        String responseBody = threadsAPI.getByUsername(username);
 
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(responseBody, JsonObject.class);
@@ -156,7 +119,7 @@ public class UserService {
     }
 
     public void downloadImage(HttpServletResponse httpResponse, String username) throws IOException {
-        CustomHeaderResponse basicInfo = getBasicInfo(username);
+        InstagramHeaderResponse basicInfo = threadsAPI.getBasicInfo(username);
         RequestBody body = new FormBody.Builder()
                 .add("av", "0")
                 .add("__user", "0")
@@ -179,27 +142,32 @@ public class UserService {
                 .add("__jssesw", "3")
                 .add("fb_api_caller_class", "RelayModern")
                 .add("fb_api_req_friendly_name", "BarcelonaProfileThreadsTabQuery")
-                .add("variables", String.format(GraphConstants.VARIABLE_USERNAME, basicInfo.getUserId()))
+                .add("variables", String.format(GraphConstants.VARIABLE_USER_ID, basicInfo.getUserId()))
                 .add("server_timestamps", "true")
                 .add("doc_id", GraphConstants.DOC_ID_MEDIA)
                 .build();
 
 
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder().url(GraphConstants.BASE_URL_GRAPH)
-                .headers(headers)
-                .addHeader("x-ig-app-id", basicInfo.getIgAppId())
-//                .addHeader("x-fb-lsd", basicInfo.getXFbLsdToken())
-                .post(body)
-                .build();
+//        OkHttpClient client = new OkHttpClient();
+//        Request request = new Request.Builder().url(GraphConstants.BASE_URL_GRAPH)
+//                .headers(headers)
+//                .addHeader("x-ig-app-id", basicInfo.getIgAppId())
+////                .addHeader("x-fb-lsd", basicInfo.getXFbLsdToken())
+//                .post(body)
+//                .build();
+//
+//        String responseBody = "";
+//        try (Response response = client.newCall(request).execute()) {
+//            if (!response.isSuccessful()) {
+//                throw new IOException("Unexpected response code: " + response);
+//            }
+//            responseBody = response.body().string();
+//        }
 
-        String responseBody = "";
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Unexpected response code: " + response);
-            }
-            responseBody = response.body().string();
-        }
+//        List<CustomHeader> customHeaders = List.of(new CustomHeader("x-ig-app-id", basicInfo.getIgAppId()));
+//        String responseBody = HttpUtils.doPost(GraphConstants.BASE_URL_GRAPH, body, customHeaders.toArray(new CustomHeader[0]));
+
+        String responseBody = threadsAPI.getMedia(username);
 
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(responseBody, JsonObject.class);
@@ -207,7 +175,7 @@ public class UserService {
 
         JsonArray threadsData = mediaData.getAsJsonArray("threads");
 
-        MediaResponse media = new MediaResponse();
+        ThreadsMedia media = new ThreadsMedia();
         List<String> imageUrls = new ArrayList<>();
         for (int i = 0; i < threadsData.size(); i++) {
             JsonElement jsonElement = threadsData.get(i);
@@ -282,25 +250,6 @@ public class UserService {
         // delete folder media and zip
         FileUtils.deleteDirectory(new File(folderDownload));
         FileUtils.deleteDirectory(new File(folderZip));
-    }
-
-    private CustomHeaderResponse getBasicInfo(String username) throws IOException {
-        String response = HttpUtils.doGet(String.format(GraphConstants.BASE_URL_WEB, username), headers);
-        // remove ALL whitespaces from responseBody
-        response = response.replaceAll("\\s", "");
-        // remove all newlines from responseBody
-        response = response.replaceAll("\\n", "");
-
-        String regexUserId = "\"props\":\\{\"user_id\":\"(\\d+)\"\\},";
-        String userId = PatternUtils.matcherPattern(response, regexUserId);
-
-        String regexIgAppId = "\"customHeaders\":\\{\"X-IG-App-ID\":\"(\\d+)\"\\},";
-        String igAppId = PatternUtils.matcherPattern(response, regexIgAppId);
-
-        String regexFbToken = "\\{\"token\"\\s*:\\s*\"([^\"]+)\"\\}";
-        String fbToken = PatternUtils.matcherPattern(response, regexFbToken);
-
-        return new CustomHeaderResponse(userId, igAppId);
     }
 
     private void download(String url, String path) {

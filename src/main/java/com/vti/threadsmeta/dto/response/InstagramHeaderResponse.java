@@ -9,12 +9,12 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CustomHeaderResponse {
+public class InstagramHeaderResponse {
 
     // header
     private String userId;
     private String igAppId;
-//    private String fbLsd;
+    private String fbLsd;
 
     // body
 
