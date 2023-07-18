@@ -1,7 +1,7 @@
 package com.vti.threadsmeta.repository;
 
 import com.vti.threadsmeta.dto.response.InstagramHeaderResponse;
-import com.vti.threadsmeta.util.GraphConstants;
+import com.vti.threadsmeta.util.constants.GraphConstants;
 import com.vti.threadsmeta.util.HttpUtils;
 import com.vti.threadsmeta.util.PatternUtils;
 import okhttp3.FormBody;
@@ -13,12 +13,11 @@ import java.io.IOException;
 @Component
 public class ThreadsAPI {
 
-    private Headers.Builder headerBuilder;
-    private FormBody.Builder formBuilder;
+    private Headers defaultHeader;
     private InstagramHeaderResponse instagramHeader;
 
     public ThreadsAPI() {
-        headerBuilder = new Headers.Builder()
+        defaultHeader = new Headers.Builder()
                 .add("sec-fetch-dest", "empty")
                 .add("sec-fetch-mode", "cors")
                 .add("sec-fetch-site", "same-origin")
@@ -26,47 +25,63 @@ public class ThreadsAPI {
                 .add("viewport-width", "1920")
                 .add("x-asbd-id", "129477")
                 .add("x-csrftoken", "")
-                .add("x-fb-friendly-name", "BarcelonaProfileRootQuery");
+                .add("x-fb-friendly-name", "BarcelonaProfileRootQuery")
+                .build();
 
         instagramHeader = getBasicInfo("");
-
-        headerBuilder.add("x-fb-lsd", instagramHeader.getFbLsd())
-                .add("x-ig-app-id", instagramHeader.getIgAppId());
-        formBuilder = new FormBody.Builder()
-                .add("lsd", instagramHeader.getFbLsd());
     }
 
     public String getByUsername(String username) throws IOException {
         instagramHeader = getBasicInfo(username);
 
-        Headers header = headerBuilder
+        Headers header = new Headers.Builder()
+                .addAll(defaultHeader)
                 .add("x-fb-lsd", instagramHeader.getFbLsd())
                 .add("x-ig-app-id", instagramHeader.getIgAppId())
                 .build();
-        FormBody body = formBuilder.add("variables", String.format(GraphConstants.VARIABLE_USER_ID, instagramHeader.getUserId()))
+
+        FormBody body = new FormBody.Builder()
+                .add("lsd", instagramHeader.getFbLsd())
+                .add("variables", String.format(GraphConstants.VARIABLE_USER_ID, instagramHeader.getUserId()))
                 .add("doc_id", GraphConstants.DOC_ID_USER_INFO)
                 .build();
 
         return HttpUtils.doPost(GraphConstants.BASE_URL_GRAPH, header, body);
     }
 
-    public String getMedia(String username) throws IOException {
+    public String getAllMedia(String username) throws IOException {
         instagramHeader = getBasicInfo(username);
 
-        FormBody body = formBuilder.add("variables", String.format(GraphConstants.VARIABLE_USER_ID, instagramHeader.getUserId()))
+        Headers header = new Headers.Builder()
+                .addAll(defaultHeader)
+                .add("x-fb-lsd", instagramHeader.getFbLsd())
+                .add("x-ig-app-id", instagramHeader.getIgAppId())
+                .build();
+
+        FormBody body = new FormBody.Builder()
+                .add("lsd", instagramHeader.getFbLsd())
+                .add("variables", String.format(GraphConstants.VARIABLE_USER_ID, instagramHeader.getUserId()))
                 .add("doc_id", GraphConstants.DOC_ID_USER_MEDIA)
                 .build();
 
-        return HttpUtils.doPost(GraphConstants.BASE_URL_GRAPH, headerBuilder.build(), body);
+        return HttpUtils.doPost(GraphConstants.BASE_URL_GRAPH, header, body);
     }
 
-    public String getThreads(long threadsId) throws IOException {
+    public String getThreadsById(long threadsId) throws IOException {
 
-        FormBody body = formBuilder.add("variables", String.format(GraphConstants.VARIABLE_POST_ID, threadsId))
+        Headers header = new Headers.Builder()
+                .addAll(defaultHeader)
+                .add("x-fb-lsd", instagramHeader.getFbLsd())
+                .add("x-ig-app-id", instagramHeader.getIgAppId())
+                .build();
+
+        FormBody body = new FormBody.Builder()
+                .add("lsd", instagramHeader.getFbLsd())
+                .add("variables", String.format(GraphConstants.VARIABLE_POST_ID, threadsId))
                 .add("doc_id", GraphConstants.DOC_ID_THREAD_MEDIA)
                 .build();
 
-        return HttpUtils.doPost(GraphConstants.BASE_URL_GRAPH, headerBuilder.build(), body);
+        return HttpUtils.doPost(GraphConstants.BASE_URL_GRAPH, header, body);
     }
 
     public long getThreadsId(String threadsUrl) {
@@ -86,7 +101,7 @@ public class ThreadsAPI {
                 return instagramHeader;
             }
 
-            String response = HttpUtils.doGet(String.format(GraphConstants.BASE_URL_WEB, username), headerBuilder.build());
+            String response = HttpUtils.doGet(String.format(GraphConstants.BASE_URL_WEB, username), defaultHeader);
             // remove ALL whitespaces from responseBody
             response = response.replaceAll("\\s", "");
             // remove all newlines from responseBody

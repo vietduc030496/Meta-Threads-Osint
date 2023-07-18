@@ -1,4 +1,4 @@
-package com.vti.threadsmeta.util;
+package com.vti.threadsmeta.util.constants;
 
 public class GraphConstants {
 

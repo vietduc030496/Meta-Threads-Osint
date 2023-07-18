@@ -6,7 +6,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.vti.threadsmeta.dto.response.ThreadsMedia;
 import com.vti.threadsmeta.dto.response.UserThreadsResponse;
+import com.vti.threadsmeta.exception.custom.ThreadsUserNotFound;
 import com.vti.threadsmeta.repository.ThreadsAPI;
+import com.vti.threadsmeta.util.I18n;
+import com.vti.threadsmeta.util.constants.MessageConstants;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,41 +34,18 @@ public class UserService {
     @Autowired
     private ThreadsAPI threadsAPI;
 
-    private static void zipFolder(File fileToZip, String fileName, ZipOutputStream zipOut) throws IOException {
-        if (fileToZip.isHidden()) {
-            return;
-        }
-        if (fileToZip.isDirectory()) {
-            if (fileName.endsWith("/")) {
-                zipOut.putNextEntry(new ZipEntry(fileName));
-                zipOut.closeEntry();
-            } else {
-                zipOut.putNextEntry(new ZipEntry(fileName + "/"));
-                zipOut.closeEntry();
-            }
-            File[] children = fileToZip.listFiles();
-            for (File childFile : children) {
-                zipFolder(childFile, fileName + "/" + childFile.getName(), zipOut);
-            }
-            return;
-        }
-        try (FileInputStream fis = new FileInputStream(fileToZip)) {
-            ZipEntry zipEntry = new ZipEntry(fileName);
-            zipOut.putNextEntry(zipEntry);
-            byte[] bytes = new byte[1024];
-            int length;
-            while ((length = fis.read(bytes)) >= 0) {
-                zipOut.write(bytes, 0, length);
-            }
-        }
-    }
-
     public UserThreadsResponse getByUsername(String username) throws IOException {
         String responseBody = threadsAPI.getByUsername(username);
 
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(responseBody, JsonObject.class);
-        JsonObject userData = jsonObject.getAsJsonObject("data").getAsJsonObject("userData").getAsJsonObject("user");
+        JsonElement data = jsonObject.get("data");
+
+        if ("null".equals(data.toString())) {
+            throw new ThreadsUserNotFound(I18n.get(MessageConstants.MSG_001), username);
+        }
+
+        JsonObject userData = data.getAsJsonObject().getAsJsonObject("userData").getAsJsonObject("user");
 
         boolean isPrivate = userData.getAsJsonPrimitive("is_private").getAsBoolean();
         String profilePicUrl = userData.getAsJsonPrimitive("profile_pic_url").getAsString();
@@ -86,12 +66,17 @@ public class UserService {
     }
 
     public String downloadImage(HttpServletResponse httpResponse, String username) throws IOException {
-        String responseBody = threadsAPI.getMedia(username);
+        String responseBody = threadsAPI.getAllMedia(username);
 
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(responseBody, JsonObject.class);
-        JsonObject mediaData = jsonObject.getAsJsonObject("data").getAsJsonObject("mediaData");
+        JsonElement data = jsonObject.get("data");
 
+        if ("null".equals(data.toString())) {
+            throw new ThreadsUserNotFound(I18n.get(MessageConstants.MSG_001), username);
+        }
+
+        JsonObject mediaData = data.getAsJsonObject().getAsJsonObject("mediaData");
         JsonArray threadsData = mediaData.getAsJsonArray("threads");
 
         ThreadsMedia media = new ThreadsMedia();
@@ -129,23 +114,6 @@ public class UserService {
         media.setImage(imageUrls);
 
         return downloadZip(httpResponse, username, media);
-    }
-
-    private void downloadMedia(String url, String path) {
-        if (url == null || url.isEmpty()) {
-            return;
-        }
-
-        try (BufferedInputStream in = new BufferedInputStream(new URL(url).openStream());
-             FileOutputStream fileOutputStream = new FileOutputStream(path)) {
-            byte[] dataBuffer = new byte[1024];
-            int bytesRead;
-            while ((bytesRead = in.read(dataBuffer, 0, 1024)) != -1) {
-                fileOutputStream.write(dataBuffer, 0, bytesRead);
-            }
-        } catch (IOException e) {
-            // handle exception
-        }
     }
 
     public String downloadZip(HttpServletResponse httpResponse, String username, ThreadsMedia media) {
@@ -200,6 +168,52 @@ public class UserService {
         }
 
         return "Download fail.";
+    }
+
+    private void downloadMedia(String url, String path) {
+        if (url == null || url.isEmpty()) {
+            return;
+        }
+
+        try (BufferedInputStream in = new BufferedInputStream(new URL(url).openStream());
+             FileOutputStream fileOutputStream = new FileOutputStream(path)) {
+            byte[] dataBuffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = in.read(dataBuffer, 0, 1024)) != -1) {
+                fileOutputStream.write(dataBuffer, 0, bytesRead);
+            }
+        } catch (IOException e) {
+            // handle exception
+        }
+    }
+
+    private void zipFolder(File fileToZip, String fileName, ZipOutputStream zipOut) throws IOException {
+        if (fileToZip.isHidden()) {
+            return;
+        }
+        if (fileToZip.isDirectory()) {
+            if (fileName.endsWith("/")) {
+                zipOut.putNextEntry(new ZipEntry(fileName));
+                zipOut.closeEntry();
+            } else {
+                zipOut.putNextEntry(new ZipEntry(fileName + "/"));
+                zipOut.closeEntry();
+            }
+            File[] children = fileToZip.listFiles();
+            for (File childFile : children) {
+                zipFolder(childFile, fileName + "/" + childFile.getName(), zipOut);
+            }
+            return;
+        }
+        try (FileInputStream fis = new FileInputStream(fileToZip)) {
+            ZipEntry zipEntry = new ZipEntry(fileName);
+            zipOut.putNextEntry(zipEntry);
+            byte[] bytes = new byte[1024];
+            int length;
+            while ((length = fis.read(bytes)) >= 0) {
+                zipOut.write(bytes, 0, length);
+            }
+        }
     }
 
 }

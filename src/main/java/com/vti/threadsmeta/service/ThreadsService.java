@@ -5,7 +5,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.vti.threadsmeta.dto.response.ThreadsItemResponse;
+import com.vti.threadsmeta.exception.custom.ThreadsItemNotFound;
+import com.vti.threadsmeta.exception.custom.ThreadsUserNotFound;
 import com.vti.threadsmeta.repository.ThreadsAPI;
+import com.vti.threadsmeta.util.I18n;
+import com.vti.threadsmeta.util.constants.MessageConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,12 +26,18 @@ public class ThreadsService {
     public ThreadsItemResponse getTheads(String threadsUrl) throws IOException {
 
         long threadsId = threadsAPI.getThreadsId(threadsUrl);
-        String responseBody = threadsAPI.getThreads(threadsId);
+        String responseBody = threadsAPI.getThreadsById(threadsId);
 
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(responseBody, JsonObject.class);
-        JsonObject data = jsonObject.getAsJsonObject("data").getAsJsonObject("data");
-        JsonArray threadItems = data.getAsJsonObject("containing_thread").getAsJsonArray("thread_items");
+        JsonElement data = jsonObject.get("data");
+
+        if ("null".equals(data.toString())) {
+            throw new ThreadsItemNotFound(I18n.get(MessageConstants.MSG_002), threadsUrl);
+        }
+
+        JsonObject dataLevel2 = jsonObject.getAsJsonObject("data").getAsJsonObject("data");
+        JsonArray threadItems = dataLevel2.getAsJsonObject("containing_thread").getAsJsonArray("thread_items");
         JsonObject post = threadItems.get(0).getAsJsonObject().getAsJsonObject("post");
 
         ThreadsItemResponse response = new ThreadsItemResponse();
