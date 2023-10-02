@@ -103,12 +103,15 @@ public class UserService {
                     }
                 }
 
-                JsonArray videoVersions = post.getAsJsonArray("video_versions");
-                if (!videoVersions.isEmpty()) {
-                    String videoUrl = videoVersions.get(0).getAsJsonObject().getAsJsonPrimitive("url").getAsString();
-                    media.setVideo(videoUrl);
-                }
 
+                JsonElement videoVersionElement = post.get("video_versions");
+                if (!"null".equals(videoVersionElement.toString())) {
+                    JsonArray videoVersions = post.getAsJsonArray("video_versions");
+                    if (!videoVersions.isEmpty()) {
+                        String videoUrl = videoVersions.get(0).getAsJsonObject().getAsJsonPrimitive("url").getAsString();
+                        media.setVideo(videoUrl);
+                    }
+                }
             }
         }
         media.setImage(imageUrls);
