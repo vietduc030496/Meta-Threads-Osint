@@ -13,7 +13,7 @@
 Clone source code
 
 ```bash
-$ git clone https://github.com/vietduc030496/Meta-Threads-Osint.git
+git clone https://github.com/vietduc030496/Meta-Threads-Osint.git
 ```
 
 Go to Meta-Threads-Osint folder and run command
